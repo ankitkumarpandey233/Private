@@ -23,8 +23,8 @@ export type Expense = {
 export type Settlement = {
   id: string;
   groupId: string;
-  fromUserId: string;
-  toUserId: string;
+  payerId: string;
+  receiverId: string;
   amount: number;
   createdAt: string;
 };

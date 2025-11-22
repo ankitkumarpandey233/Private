@@ -32,7 +32,7 @@ export const calculateGroupDebts = (
   settlements
     .filter((settlement) => settlement.groupId === group.id)
     .forEach((settlement) => {
-      const key = keyForPair(settlement.fromUserId, settlement.toUserId);
+      const key = keyForPair(settlement.payerId, settlement.receiverId);
       const current = debtMap.get(key) ?? 0;
       const updated = current - settlement.amount;
       if (updated > 0) {

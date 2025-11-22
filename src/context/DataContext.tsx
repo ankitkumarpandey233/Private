@@ -12,6 +12,9 @@ export type DataContextValue = {
   settlements: Settlement[];
   updateUser: (userId: string, updates: Partial<User>) => void;
   addSettlement: (settlement: Omit<Settlement, 'id' | 'createdAt'>) => void;
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
+  updateExpense: (expenseId: string, updates: Partial<Expense>) => void;
+  deleteExpense: (expenseId: string) => void;
   getGroupDebts: (groupId: string) => ReturnType<typeof calculateGroupDebts>;
 };
 
@@ -19,13 +22,34 @@ const DataContext = createContext<DataContextValue | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<User[]>(seedUsers);
-  const [expenses] = useState<Expense[]>(seedExpenses);
+  const [expenses, setExpenses] = useState<Expense[]>(seedExpenses);
   const [groups] = useState<Group[]>(seedGroups);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const currentUserId = 'u1';
 
   const updateUser = (userId: string, updates: Partial<User>) => {
     setUsers((prev) => prev.map((user) => (user.id === userId ? { ...user, ...updates } : user)));
+  };
+
+  const addExpense = (expense: Omit<Expense, 'id' | 'createdAt'>) => {
+    setExpenses((prev) => [
+      ...prev,
+      {
+        ...expense,
+        id: nanoid(),
+        createdAt: new Date().toISOString()
+      }
+    ]);
+  };
+
+  const updateExpense = (expenseId: string, updates: Partial<Expense>) => {
+    setExpenses((prev) =>
+      prev.map((expense) => (expense.id === expenseId ? { ...expense, ...updates } : expense))
+    );
+  };
+
+  const deleteExpense = (expenseId: string) => {
+    setExpenses((prev) => prev.filter((expense) => expense.id !== expenseId));
   };
 
   const addSettlement = (settlement: Omit<Settlement, 'id' | 'createdAt'>) => {
@@ -46,8 +70,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const value = useMemo(
-    () => ({ currentUserId, users, expenses, groups, settlements, updateUser, addSettlement, getGroupDebts }),
-    [users, expenses, groups, settlements]
+    () => ({
+      currentUserId,
+      users,
+      expenses,
+      groups,
+      settlements,
+      updateUser,
+      addSettlement,
+      addExpense,
+      updateExpense,
+      deleteExpense,
+      getGroupDebts
+    }),
+    [currentUserId, users, expenses, groups, settlements]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

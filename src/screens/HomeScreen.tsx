@@ -21,7 +21,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       const owedTotal = balances
         .filter((balance) => balance.direction === 'owed')
         .reduce((sum, balance) => sum + balance.amount, 0);
-      let summary = 'All settled up';
+      let summary = 'All settled';
       if (oweTotal > owedTotal) {
         summary = `You owe ₹${(oweTotal - owedTotal).toFixed(0)}`;
       } else if (owedTotal > oweTotal) {
@@ -49,6 +49,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             />
           )}
           ListEmptyComponent={<Text>No groups yet.</Text>}
+          contentContainerStyle={{ paddingBottom: 16 }}
         />
       </View>
     </SafeAreaView>
@@ -58,7 +59,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f2f2f2'
+    backgroundColor: '#f5f5f5'
   },
   container: {
     flex: 1,
@@ -68,6 +69,7 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 22,
     fontWeight: '700',
-    marginBottom: 12
+    marginBottom: 12,
+    color: '#222'
   }
 });

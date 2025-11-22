@@ -6,11 +6,13 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { GroupDetailScreen } from '../screens/GroupDetailScreen';
 import { SettleUpScreen } from '../screens/SettleUpScreen';
 import { UserSettingsScreen } from '../screens/UserSettingsScreen';
+import { AddExpenseScreen } from '../screens/AddExpenseScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
   GroupDetail: { groupId: string };
-  SettleUp: { groupId: string; fromUserId?: string; toUserId?: string; amount?: number };
+  AddExpense: { groupId: string; expenseId?: string };
+  SettleUp: { groupId: string; payerId?: string; receiverId?: string; amount?: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -29,6 +31,7 @@ export const RootNavigator = () => {
       <Stack.Navigator>
         <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
         <Stack.Screen name="GroupDetail" component={GroupDetailScreen} options={{ title: 'Group' }} />
+        <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ title: 'Add expense' }} />
         <Stack.Screen name="SettleUp" component={SettleUpScreen} options={{ presentation: 'modal', title: 'Settle up' }} />
       </Stack.Navigator>
     </NavigationContainer>

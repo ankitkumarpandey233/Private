@@ -4,12 +4,13 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { useData } from '../context/DataContext';
 import { calculateGroupDebts, buildBalanceDisplay } from '../utils/balance';
-import { payWithUpi } from '../utils/upi';
+
+const ACCENT = '#1cc29f';
 
 export type SettleUpProps = NativeStackScreenProps<RootStackParamList, 'SettleUp'>;
 
 export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) => {
-  const { groupId, fromUserId, toUserId, amount } = route.params;
+  const { groupId, payerId, receiverId, amount } = route.params;
   const { groups, users, expenses, settlements, addSettlement, currentUserId } = useData();
   const group = groups.find((g) => g.id === groupId);
 
@@ -19,9 +20,10 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
     return buildBalanceDisplay(currentUserId, baseDebts, users);
   }, [group, expenses, settlements, currentUserId, users]);
 
-  const initialBalance = debts.find(
-    (debt) => debt.fromUserId === fromUserId && debt.toUserId === toUserId && amount === debt.amount
-  ) || debts[0];
+  const initialBalance =
+    debts.find(
+      (debt) => debt.fromUserId === payerId && debt.toUserId === receiverId && amount === debt.amount
+    ) || debts[0];
 
   const [selectedBalance, setSelectedBalance] = useState(initialBalance);
   const [customAmount, setCustomAmount] = useState(
@@ -38,17 +40,11 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
     );
   }
 
-  const receiverId = selectedBalance.direction === 'owe' ? selectedBalance.toUserId : selectedBalance.fromUserId;
-  const receiver = users.find((u) => u.id === receiverId);
+  const otherUserId = selectedBalance.direction === 'owe'
+    ? selectedBalance.toUserId
+    : selectedBalance.fromUserId;
+  const otherUser = users.find((u) => u.id === otherUserId);
   const amountNumber = Number(customAmount) || 0;
-
-  const handlePayWithUpi = async () => {
-    if (!receiver?.upiId) {
-      Alert.alert('Missing UPI ID', 'This user does not have a UPI ID set.');
-      return;
-    }
-    await payWithUpi(receiver.upiId, amountNumber, `Settle up for ${group.name}`);
-  };
 
   const handleSettle = () => {
     if (amountNumber <= 0) {
@@ -56,10 +52,10 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
       return;
     }
 
-    const fromUser = selectedBalance.direction === 'owe' ? selectedBalance.fromUserId : selectedBalance.toUserId;
-    const toUser = selectedBalance.direction === 'owe' ? selectedBalance.toUserId : selectedBalance.fromUserId;
+    const payer = selectedBalance.direction === 'owe' ? selectedBalance.fromUserId : selectedBalance.toUserId;
+    const receiver = selectedBalance.direction === 'owe' ? selectedBalance.toUserId : selectedBalance.fromUserId;
 
-    addSettlement({ groupId: group.id, fromUserId: fromUser, toUserId: toUser, amount: amountNumber });
+    addSettlement({ groupId: group.id, payerId: payer, receiverId: receiver, amount: amountNumber });
     navigation.goBack();
   };
 
@@ -68,8 +64,8 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
       <View style={styles.container}>
         <Text style={styles.heading}>Settle up</Text>
         <View style={styles.selector}>
-          <Text style={styles.label}>Paying to:</Text>
-          <Text style={styles.value}>{receiver?.name ?? 'User'}</Text>
+          <Text style={styles.label}>Settling with</Text>
+          <Text style={styles.value}>{otherUser?.name ?? 'User'}</Text>
           <Text style={styles.label}>Amount (₹)</Text>
           <TextInput
             style={styles.input}
@@ -77,14 +73,12 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
             value={customAmount}
             onChangeText={setCustomAmount}
           />
-          <Text style={styles.label}>UPI ID</Text>
-          <Text style={styles.value}>{receiver?.upiId ?? 'Not provided'}</Text>
         </View>
 
         <Text style={styles.label}>Choose balance</Text>
         {debts.map((debt) => {
-          const otherUserId = debt.direction === 'owe' ? debt.toUserId : debt.fromUserId;
-          const otherUser = users.find((u) => u.id === otherUserId);
+          const userId = debt.direction === 'owe' ? debt.toUserId : debt.fromUserId;
+          const user = users.find((u) => u.id === userId);
           const isSelected = debt === selectedBalance;
           return (
             <Pressable
@@ -97,19 +91,19 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
             >
               <Text>
                 {debt.direction === 'owe'
-                  ? `You owe ${otherUser?.name ?? 'User'} ₹${debt.amount.toFixed(0)}`
-                  : `${otherUser?.name ?? 'User'} owes you ₹${debt.amount.toFixed(0)}`}
+                  ? `You owe ${user?.name ?? 'User'} ₹${debt.amount.toFixed(0)}`
+                  : `${user?.name ?? 'User'} owes you ₹${debt.amount.toFixed(0)}`}
               </Text>
             </Pressable>
           );
         })}
       </View>
       <View style={styles.footer}>
-        <Pressable style={styles.primaryButton} onPress={handlePayWithUpi}>
-          <Text style={styles.primaryButtonText}>Pay with UPI</Text>
+        <Pressable style={styles.primaryButton} onPress={handleSettle}>
+          <Text style={styles.primaryButtonText}>Save settlement</Text>
         </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={handleSettle}>
-          <Text style={styles.secondaryButtonText}>Mark as settled</Text>
+        <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.secondaryButtonText}>Cancel</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -119,7 +113,7 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f7f7f7'
+    backgroundColor: '#f5f5f5'
   },
   container: {
     flex: 1,
@@ -165,8 +159,8 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   balanceRowSelected: {
-    borderColor: '#2f80ed',
-    backgroundColor: '#e8f1ff'
+    borderColor: ACCENT,
+    backgroundColor: 'rgba(28, 194, 159, 0.08)'
   },
   footer: {
     padding: 16,
@@ -175,7 +169,7 @@ const styles = StyleSheet.create({
     borderColor: '#eee'
   },
   primaryButton: {
-    backgroundColor: '#2f80ed',
+    backgroundColor: ACCENT,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -186,14 +180,14 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   secondaryButton: {
-    borderColor: '#2f80ed',
+    borderColor: '#ccc',
     borderWidth: 1,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center'
   },
   secondaryButtonText: {
-    color: '#2f80ed',
+    color: '#444',
     fontWeight: '700'
   }
 });

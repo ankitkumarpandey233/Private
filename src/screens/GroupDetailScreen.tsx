@@ -60,7 +60,11 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
 
   const activity: ActivityItem[] = useMemo(() => {
     return [
-      ...groupExpenses.map((expense) => ({ type: 'expense', id: expense.id, createdAt: expense.createdAt })),
+      ...groupExpenses.map((expense) => ({
+        type: 'expense',
+        id: expense.id,
+        createdAt: expense.createdAt
+      })),
       ...groupSettlements.map((settlement) => ({
         type: 'settlement',
         id: settlement.id,
@@ -69,10 +73,15 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [groupExpenses, groupSettlements]);
 
-  const settleTarget = useMemo(() => balances.find((b) => b.direction === 'owe') || balances[0], [balances]);
+  const settleTarget = useMemo(
+    () => balances.find((b) => b.direction === 'owe') || balances[0],
+    [balances]
+  );
+
   const settleTargetUser = useMemo(() => {
     if (!settleTarget) return undefined;
-    const userId = settleTarget.direction === 'owe' ? settleTarget.toUserId : settleTarget.fromUserId;
+    const userId =
+      settleTarget.direction === 'owe' ? settleTarget.toUserId : settleTarget.fromUserId;
     return users.find((u) => u.id === userId);
   }, [settleTarget, users]);
 
@@ -120,7 +129,9 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
       <View style={styles.settlementCard}>
         <Text style={styles.settlementLabel}>Settlement</Text>
         <Text style={styles.settlementText}>{text}</Text>
-        <Text style={styles.settlementDate}>{new Date(settlement.createdAt).toLocaleDateString()}</Text>
+        <Text style={styles.settlementDate}>
+          {new Date(settlement.createdAt).toLocaleDateString()}
+        </Text>
       </View>
     );
   };
@@ -189,7 +200,11 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
             You can pay {settleTargetUser.name} via UPI on the next screen.
           </Text>
         ) : null}
-        <Pressable style={styles.secondaryButton} onPress={handleSettleUp} accessibilityRole="button">
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={handleSettleUp}
+          accessibilityRole="button"
+        >
           <Text style={styles.secondaryButtonText}>Settle up</Text>
         </Pressable>
       </View>

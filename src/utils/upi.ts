@@ -1,21 +1,25 @@
-import { Linking } from 'react-native';
+import { Alert, Linking } from 'react-native';
 
 export async function payWithUpi(upiId: string, amount: number, note: string): Promise<void> {
-  const upiUrl =
-    'upi://pay' +
-    `?pa=${encodeURIComponent(upiId)}` +
-    `&am=${encodeURIComponent(amount.toString())}` +
-    `&cu=INR` +
-    `&tn=${encodeURIComponent(note)}`;
+  const params = new URLSearchParams({
+    pa: upiId,
+    am: amount.toFixed(2),
+    cu: 'INR',
+    tn: note
+  });
 
-  const canOpen = await Linking.canOpenURL(upiUrl);
+  const url = `upi://pay?${params.toString()}`;
+
+  // First check if a UPI app can handle this
+  const canOpen = await Linking.canOpenURL(url);
   if (!canOpen) {
-    console.warn('No app can handle UPI URL, still trying openURL:', upiUrl);
+    console.warn('No UPI app available, still trying to open the URL:', url);
   }
 
   try {
-    await Linking.openURL(upiUrl);
+    await Linking.openURL(url);
   } catch (error) {
-    console.warn('Failed to open UPI URL', error);
+    console.error('Failed to open UPI app', error);
+    Alert.alert('UPI Error', 'Could not open a UPI app on this device.');
   }
 }

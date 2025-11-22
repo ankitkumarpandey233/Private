@@ -13,11 +13,20 @@ interface ExpenseItemProps {
 export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, payer, onEdit, onDelete }) => {
   const handleLongPress = () => {
     if (!onEdit && !onDelete) return;
-    Alert.alert('Expense options', undefined, [
-      onEdit ? { text: 'Edit', onPress: onEdit } : undefined,
-      onDelete ? { text: 'Delete', onPress: onDelete, style: 'destructive' } : undefined,
-      { text: 'Cancel', style: 'cancel' }
-    ].filter(Boolean) as { text: string; onPress?: () => void; style?: 'destructive' | 'cancel' }[]);
+
+    Alert.alert(
+      'Expense options',
+      undefined,
+      [
+        onEdit ? { text: 'Edit', onPress: onEdit } : undefined,
+        onDelete ? { text: 'Delete', onPress: onDelete, style: 'destructive' } : undefined,
+        { text: 'Cancel', style: 'cancel' }
+      ].filter(Boolean) as {
+        text: string;
+        onPress?: () => void;
+        style?: 'destructive' | 'cancel';
+      }[]
+    );
   };
 
   const primaryLine = `${payer?.name ?? 'Someone'} paid ₹${expense.amount.toFixed(0)} – ${

@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useData } from '../context/DataContext';
 import { colors, radius, spacing } from '../theme';
@@ -12,6 +21,7 @@ export const UserSettingsScreen: React.FC = () => {
     updateCurrentUserUpiQrImage,
     updateUser
   } = useData();
+
   const [upiId, setUpiId] = useState(currentUser?.upiId ?? '');
   const [preferredApp, setPreferredApp] = useState(currentUser?.preferredUpiApp ?? '');
   const [upiQrImageUri, setUpiQrImageUri] = useState(currentUser?.upiQrImageUri ?? '');
@@ -36,9 +46,11 @@ export const UserSettingsScreen: React.FC = () => {
     const trimmedUpi = upiId.trim();
     updateCurrentUserUpi(trimmedUpi);
     updateUser(currentUserId, { preferredUpiApp: preferredApp.trim() });
+
     if (upiQrImageUri) {
       updateCurrentUserUpiQrImage(upiQrImageUri);
     }
+
     Alert.alert('Saved', 'Your payment details have been updated.');
   };
 
@@ -74,7 +86,7 @@ export const UserSettingsScreen: React.FC = () => {
           placeholder="yourname@bank"
           autoCapitalize="none"
         />
-        <Text style={styles.helper}>Others will see this UPI ID when they settle up with you.</Text>
+        <Text style={styles.helper}>Others will see this when they settle with you.</Text>
 
         <Text style={styles.label}>Preferred UPI app (optional)</Text>
         <TextInput
@@ -85,11 +97,12 @@ export const UserSettingsScreen: React.FC = () => {
         />
 
         <View style={styles.qrRow}>
-          <Pressable style={styles.outlineButton} onPress={pickQrImage} accessibilityRole="button">
+          <Pressable style={styles.outlineButton} onPress={pickQrImage}>
             <Text style={styles.outlineButtonText}>Select QR image</Text>
           </Pressable>
           {upiQrImageUri ? <Text style={styles.qrInfo}>QR selected</Text> : null}
         </View>
+
         {upiQrImageUri ? (
           <View style={styles.qrPreviewWrapper}>
             <Image source={{ uri: upiQrImageUri }} style={styles.qrPreview} />
@@ -97,7 +110,7 @@ export const UserSettingsScreen: React.FC = () => {
           </View>
         ) : null}
 
-        <Pressable style={styles.saveButton} onPress={handleSave} accessibilityRole="button">
+        <Pressable style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save</Text>
         </Pressable>
       </View>

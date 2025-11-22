@@ -16,12 +16,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     return groups.map((group) => {
       const debts = calculateGroupDebts(group, expenses, settlements);
       const balances = buildBalanceDisplay(currentUserId, debts, users);
+
       const oweTotal = balances
-        .filter((balance) => balance.direction === 'owe')
-        .reduce((sum, balance) => sum + balance.amount, 0);
+        .filter((b) => b.direction === 'owe')
+        .reduce((sum, b) => sum + b.amount, 0);
+
       const owedTotal = balances
-        .filter((balance) => balance.direction === 'owed')
-        .reduce((sum, balance) => sum + balance.amount, 0);
+        .filter((b) => b.direction === 'owed')
+        .reduce((sum, b) => sum + b.amount, 0);
+
       let summary = 'All settled';
       if (oweTotal > owedTotal) {
         summary = `You owe ₹${(oweTotal - owedTotal).toFixed(0)}`;
@@ -33,7 +36,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     });
   }, [groups, users, expenses, settlements, currentUserId]);
 
-  const getSummary = (groupId: string) => summaries.find((s) => s.groupId === groupId)?.summary ?? '';
+  const getSummary = (groupId: string) =>
+    summaries.find((s) => s.groupId === groupId)?.summary ?? '';
 
   return (
     <SafeAreaView style={styles.safeArea}>

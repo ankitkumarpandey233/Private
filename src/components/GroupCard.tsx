@@ -23,10 +23,16 @@ export const GroupCard: React.FC<GroupCardProps> = ({ name, summary, onPress }) 
     >
       <View>
         <Text style={styles.name}>{name}</Text>
-        <Text style={[styles.summary, isOwe ? styles.oweText : isOwed ? styles.owedText : undefined]}>
+        <Text
+          style={[
+            styles.summary,
+            isOwe ? styles.oweText : isOwed ? styles.owedText : undefined
+          ]}
+        >
           {summary || 'All settled'}
         </Text>
       </View>
+
       <Feather name="chevron-right" size={20} color={colors.textSecondary} />
     </Pressable>
   );
@@ -68,3 +74,4 @@ const styles = StyleSheet.create({
     color: colors.positive
   }
 });
+

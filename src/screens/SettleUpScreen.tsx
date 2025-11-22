@@ -44,7 +44,12 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
       return;
     }
 
-    addSettlement({ groupId: group.id, payerId: payer.id, receiverId: receiver.id, amount: amountNumber });
+    addSettlement({
+      groupId: group.id,
+      payerId: payer.id,
+      receiverId: receiver.id,
+      amount: amountNumber
+    });
     navigation.goBack();
   };
 
@@ -90,7 +95,11 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
               >
                 <Text style={styles.primaryButtonText}>Pay with UPI</Text>
               </Pressable>
-              <Pressable style={styles.textButton} onPress={handleCopyUpi} accessibilityRole="button">
+              <Pressable
+                style={styles.textButton}
+                onPress={handleCopyUpi}
+                accessibilityRole="button"
+              >
                 <Text style={styles.textButtonText}>Copy UPI ID</Text>
               </Pressable>
             </View>
@@ -109,10 +118,18 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
             </View>
           ) : null}
 
-          <Pressable style={styles.secondaryButton} onPress={handleSettle} accessibilityRole="button">
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={handleSettle}
+            accessibilityRole="button"
+          >
             <Text style={styles.secondaryButtonText}>Mark as settled</Text>
           </Pressable>
-          <Pressable style={styles.textButton} onPress={() => navigation.goBack()} accessibilityRole="button">
+          <Pressable
+            style={styles.textButton}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+          >
             <Text style={styles.textButtonText}>Cancel</Text>
           </Pressable>
         </View>

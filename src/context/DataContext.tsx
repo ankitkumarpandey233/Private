@@ -29,7 +29,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [groups] = useState<Group[]>(seedGroups);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const currentUserId = 'u1';
-  const currentUser = useMemo(() => users.find((u) => u.id === currentUserId), [users, currentUserId]);
+
+  const currentUser = useMemo(
+    () => users.find((u) => u.id === currentUserId),
+    [users, currentUserId]
+  );
 
   const updateUser = (userId: string, updates: Partial<User>) => {
     setUsers((prev) => prev.map((user) => (user.id === userId ? { ...user, ...updates } : user)));

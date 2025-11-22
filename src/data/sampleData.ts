@@ -1,8 +1,18 @@
 import { Expense, Group, User } from '../types';
 
 export const users: User[] = [
-  { id: 'u1', name: 'You', upiId: 'you@okaxis', upiQrImageUri: 'https://via.placeholder.com/200x200.png?text=Your+UPI+QR' },
-  { id: 'u2', name: 'Rahul', upiId: 'rahul@okhdfc', upiQrImageUri: 'https://via.placeholder.com/200x200.png?text=Rahul+QR' },
+  {
+    id: 'u1',
+    name: 'You',
+    upiId: 'you@okaxis',
+    upiQrImageUri: 'https://via.placeholder.com/200x200.png?text=Your+UPI+QR'
+  },
+  {
+    id: 'u2',
+    name: 'Rahul',
+    upiId: 'rahul@okhdfc',
+    upiQrImageUri: 'https://via.placeholder.com/200x200.png?text=Rahul+QR'
+  },
   { id: 'u3', name: 'Aisha', upiId: 'aisha@okicici' },
   { id: 'u4', name: 'Vikram', upiId: 'vikram@ybl' }
 ];

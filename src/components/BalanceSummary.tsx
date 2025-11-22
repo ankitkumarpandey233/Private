@@ -11,7 +11,7 @@ interface BalanceSummaryProps {
 export const BalanceSummary: React.FC<BalanceSummaryProps> = ({ summary, balances }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.summary}>{summary}</Text>
+      {summary ? <Text style={styles.summary}>{summary}</Text> : null}
       {balances.map((balance) => (
         <View key={`${balance.fromUserId}-${balance.toUserId}`} style={styles.balanceRow}>
           <Text

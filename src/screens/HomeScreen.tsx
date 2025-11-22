@@ -49,8 +49,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
             />
           )}
-          ListEmptyComponent={<Text>No groups yet.</Text>}
-          contentContainerStyle={{ paddingBottom: 16 }}
+          ListEmptyComponent={<Text style={styles.emptyText}>No groups yet.</Text>}
+          contentContainerStyle={{ paddingBottom: spacing.l }}
         />
       </View>
     </SafeAreaView>
@@ -72,5 +72,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: spacing.m,
     color: colors.textPrimary
+  },
+  emptyText: {
+    color: colors.textSecondary,
+    textAlign: 'center'
   }
 });

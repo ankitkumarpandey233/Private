@@ -1,0 +1,193 @@
+import React, { useMemo, useState } from 'react';
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
+import { useData } from '../context/DataContext';
+import { calculateGroupDebts, buildBalanceDisplay } from '../utils/balance';
+
+const ACCENT = '#1cc29f';
+
+export type SettleUpProps = NativeStackScreenProps<RootStackParamList, 'SettleUp'>;
+
+export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) => {
+  const { groupId, payerId, receiverId, amount } = route.params;
+  const { groups, users, expenses, settlements, addSettlement, currentUserId } = useData();
+  const group = groups.find((g) => g.id === groupId);
+
+  const debts = useMemo(() => {
+    if (!group) return [];
+    const baseDebts = calculateGroupDebts(group, expenses, settlements);
+    return buildBalanceDisplay(currentUserId, baseDebts, users);
+  }, [group, expenses, settlements, currentUserId, users]);
+
+  const initialBalance =
+    debts.find(
+      (debt) => debt.fromUserId === payerId && debt.toUserId === receiverId && amount === debt.amount
+    ) || debts[0];
+
+  const [selectedBalance, setSelectedBalance] = useState(initialBalance);
+  const [customAmount, setCustomAmount] = useState(
+    initialBalance ? initialBalance.amount.toFixed(0) : amount?.toFixed(0) ?? '0'
+  );
+
+  if (!group || !selectedBalance) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Text>No balances to settle.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const otherUserId = selectedBalance.direction === 'owe'
+    ? selectedBalance.toUserId
+    : selectedBalance.fromUserId;
+  const otherUser = users.find((u) => u.id === otherUserId);
+  const amountNumber = Number(customAmount) || 0;
+
+  const handleSettle = () => {
+    if (amountNumber <= 0) {
+      Alert.alert('Invalid amount', 'Please enter a valid amount to settle.');
+      return;
+    }
+
+    const payer = selectedBalance.direction === 'owe' ? selectedBalance.fromUserId : selectedBalance.toUserId;
+    const receiver = selectedBalance.direction === 'owe' ? selectedBalance.toUserId : selectedBalance.fromUserId;
+
+    addSettlement({ groupId: group.id, payerId: payer, receiverId: receiver, amount: amountNumber });
+    navigation.goBack();
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.heading}>Settle up</Text>
+        <View style={styles.selector}>
+          <Text style={styles.label}>Settling with</Text>
+          <Text style={styles.value}>{otherUser?.name ?? 'User'}</Text>
+          <Text style={styles.label}>Amount (₹)</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            value={customAmount}
+            onChangeText={setCustomAmount}
+          />
+        </View>
+
+        <Text style={styles.label}>Choose balance</Text>
+        {debts.map((debt) => {
+          const userId = debt.direction === 'owe' ? debt.toUserId : debt.fromUserId;
+          const user = users.find((u) => u.id === userId);
+          const isSelected = debt === selectedBalance;
+          return (
+            <Pressable
+              key={`${debt.fromUserId}-${debt.toUserId}`}
+              style={[styles.balanceRow, isSelected && styles.balanceRowSelected]}
+              onPress={() => {
+                setSelectedBalance(debt);
+                setCustomAmount(debt.amount.toFixed(0));
+              }}
+            >
+              <Text>
+                {debt.direction === 'owe'
+                  ? `You owe ${user?.name ?? 'User'} ₹${debt.amount.toFixed(0)}`
+                  : `${user?.name ?? 'User'} owes you ₹${debt.amount.toFixed(0)}`}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.footer}>
+        <Pressable style={styles.primaryButton} onPress={handleSettle}>
+          <Text style={styles.primaryButtonText}>Save settlement</Text>
+        </Pressable>
+        <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.secondaryButtonText}>Cancel</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f5f5f5'
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 16
+  },
+  selector: {
+    backgroundColor: '#fff',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#eee'
+  },
+  label: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 6,
+    marginBottom: 4
+  },
+  value: {
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16
+  },
+  balanceRow: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
+    marginBottom: 8
+  },
+  balanceRowSelected: {
+    borderColor: ACCENT,
+    backgroundColor: 'rgba(28, 194, 159, 0.08)'
+  },
+  footer: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderColor: '#eee'
+  },
+  primaryButton: {
+    backgroundColor: ACCENT,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 10
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontWeight: '700'
+  },
+  secondaryButton: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center'
+  },
+  secondaryButtonText: {
+    color: '#444',
+    fontWeight: '700'
+  }
+});

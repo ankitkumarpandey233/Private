@@ -5,6 +5,7 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { useData } from '../context/DataContext';
 import { GroupCard } from '../components/GroupCard';
 import { buildBalanceDisplay, calculateGroupDebts } from '../utils/balance';
+import { colors, spacing } from '../theme';
 
 export type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Tabs'>;
 
@@ -15,12 +16,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     return groups.map((group) => {
       const debts = calculateGroupDebts(group, expenses, settlements);
       const balances = buildBalanceDisplay(currentUserId, debts, users);
+
       const oweTotal = balances
-        .filter((balance) => balance.direction === 'owe')
-        .reduce((sum, balance) => sum + balance.amount, 0);
+        .filter((b) => b.direction === 'owe')
+        .reduce((sum, b) => sum + b.amount, 0);
+
       const owedTotal = balances
-        .filter((balance) => balance.direction === 'owed')
-        .reduce((sum, balance) => sum + balance.amount, 0);
+        .filter((b) => b.direction === 'owed')
+        .reduce((sum, b) => sum + b.amount, 0);
+
       let summary = 'All settled';
       if (oweTotal > owedTotal) {
         summary = `You owe ₹${(oweTotal - owedTotal).toFixed(0)}`;
@@ -32,7 +36,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     });
   }, [groups, users, expenses, settlements, currentUserId]);
 
-  const getSummary = (groupId: string) => summaries.find((s) => s.groupId === groupId)?.summary ?? '';
+  const getSummary = (groupId: string) =>
+    summaries.find((s) => s.groupId === groupId)?.summary ?? '';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -48,8 +53,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
             />
           )}
-          ListEmptyComponent={<Text>No groups yet.</Text>}
-          contentContainerStyle={{ paddingBottom: 16 }}
+          ListEmptyComponent={<Text style={styles.emptyText}>No groups yet.</Text>}
+          contentContainerStyle={{ paddingBottom: spacing.l }}
         />
       </View>
     </SafeAreaView>
@@ -59,17 +64,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f5f5f5'
+    backgroundColor: colors.background
   },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16
+    paddingHorizontal: spacing.m,
+    paddingTop: spacing.l
   },
   heading: {
     fontSize: 22,
     fontWeight: '700',
-    marginBottom: 12,
-    color: '#222'
+    marginBottom: spacing.m,
+    color: colors.textPrimary
+  },
+  emptyText: {
+    color: colors.textSecondary,
+    textAlign: 'center'
   }
 });

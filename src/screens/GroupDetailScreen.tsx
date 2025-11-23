@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react';
 import { Alert, FlatList, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { useData } from '../context/DataContext';
 import { BalanceSummary } from '../components/BalanceSummary';
 import { ExpenseItem } from '../components/ExpenseItem';
 import { buildBalanceDisplay } from '../utils/balance';
+import { colors, radius, spacing } from '../theme';
 
 export type GroupDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'GroupDetail'>;
-
-const ACCENT = '#1cc29f';
 
 type ActivityItem =
   | { type: 'expense'; id: string; createdAt: string }
@@ -60,7 +60,11 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
 
   const activity: ActivityItem[] = useMemo(() => {
     return [
-      ...groupExpenses.map((expense) => ({ type: 'expense', id: expense.id, createdAt: expense.createdAt })),
+      ...groupExpenses.map((expense) => ({
+        type: 'expense',
+        id: expense.id,
+        createdAt: expense.createdAt
+      })),
       ...groupSettlements.map((settlement) => ({
         type: 'settlement',
         id: settlement.id,
@@ -68,6 +72,18 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
       }))
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [groupExpenses, groupSettlements]);
+
+  const settleTarget = useMemo(
+    () => balances.find((b) => b.direction === 'owe') || balances[0],
+    [balances]
+  );
+
+  const settleTargetUser = useMemo(() => {
+    if (!settleTarget) return undefined;
+    const userId =
+      settleTarget.direction === 'owe' ? settleTarget.toUserId : settleTarget.fromUserId;
+    return users.find((u) => u.id === userId);
+  }, [settleTarget, users]);
 
   if (!group) {
     return (
@@ -84,7 +100,7 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
   };
 
   const handleSettleUp = () => {
-    const target = balances.find((b) => b.direction === 'owe') || balances[0];
+    const target = settleTarget;
     if (!target) {
       Alert.alert('All settled', 'No balances to settle right now.');
       return;
@@ -113,7 +129,9 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
       <View style={styles.settlementCard}>
         <Text style={styles.settlementLabel}>Settlement</Text>
         <Text style={styles.settlementText}>{text}</Text>
-        <Text style={styles.settlementDate}>{new Date(settlement.createdAt).toLocaleDateString()}</Text>
+        <Text style={styles.settlementDate}>
+          {new Date(settlement.createdAt).toLocaleDateString()}
+        </Text>
       </View>
     );
   };
@@ -123,10 +141,28 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
       <View style={styles.container}>
         <View style={styles.heroCard}>
           <Text style={styles.heading}>{group.name}</Text>
-          <Text style={styles.summary}>{summaryText}</Text>
+          <Text
+            style={[
+              styles.summary,
+              summaryText.toLowerCase().includes('owed')
+                ? styles.positiveText
+                : summaryText.toLowerCase().includes('owe')
+                ? styles.dangerText
+                : styles.mutedText
+            ]}
+          >
+            {summaryText}
+          </Text>
         </View>
-        <BalanceSummary summary={summaryText} balances={balances} />
-        <Text style={styles.subheading}>Activity</Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Balances</Text>
+          <BalanceSummary summary="" balances={balances} />
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Activity</Text>
+        </View>
         <FlatList
           data={activity}
           keyExtractor={(item) => item.id}
@@ -154,17 +190,26 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
             }
             return renderSettlement(item.id);
           }}
-          ListEmptyComponent={<Text>No expenses yet.</Text>}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          ListEmptyComponent={<Text style={styles.mutedText}>No activity yet.</Text>}
+          contentContainerStyle={{ paddingBottom: spacing.xl * 3 }}
         />
       </View>
       <View style={styles.footer}>
-        <Pressable style={styles.secondaryButton} onPress={handleSettleUp}>
+        {settleTargetUser?.upiId ? (
+          <Text style={styles.footerHint}>
+            You can pay {settleTargetUser.name} via UPI on the next screen.
+          </Text>
+        ) : null}
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={handleSettleUp}
+          accessibilityRole="button"
+        >
           <Text style={styles.secondaryButtonText}>Settle up</Text>
         </Pressable>
       </View>
       <Pressable style={styles.fab} onPress={handleAddExpense} accessibilityRole="button">
-        <Text style={styles.fabText}>＋ Add expense</Text>
+        <Feather name="plus" size={24} color={colors.card} />
       </Pressable>
     </SafeAreaView>
   );
@@ -173,95 +218,114 @@ export const GroupDetailScreen: React.FC<GroupDetailScreenProps> = ({ route, nav
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f5f5f5'
+    backgroundColor: colors.background
   },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16
+    paddingHorizontal: spacing.m,
+    paddingTop: spacing.l
   },
   heroCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: colors.card,
+    padding: spacing.l,
+    borderRadius: radius.l,
+    marginBottom: spacing.m,
     borderWidth: 1,
-    borderColor: '#eee'
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3
   },
   heading: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#222'
+    color: colors.textPrimary
   },
   summary: {
     fontSize: 16,
-    color: '#555',
-    marginTop: 6
+    marginTop: spacing.s,
+    color: colors.textSecondary
   },
-  subheading: {
+  section: {
+    marginBottom: spacing.l
+  },
+  sectionHeader: {
+    marginBottom: spacing.s
+  },
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 8,
-    color: '#222'
+    color: colors.textPrimary
   },
   footer: {
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: spacing.l,
+    backgroundColor: colors.card,
     borderTopWidth: 1,
-    borderColor: '#eee'
+    borderColor: colors.border
+  },
+  footerHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: spacing.s
   },
   secondaryButton: {
-    borderColor: ACCENT,
+    borderColor: colors.accent,
     borderWidth: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: spacing.m,
+    borderRadius: radius.m,
     alignItems: 'center',
-    backgroundColor: '#fff'
+    backgroundColor: colors.card
   },
   secondaryButtonText: {
-    color: ACCENT,
+    color: colors.accent,
     fontWeight: '700',
     fontSize: 16
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 26,
-    backgroundColor: ACCENT,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 30,
+    right: spacing.l,
+    bottom: spacing.xl,
+    backgroundColor: colors.accent,
+    padding: spacing.m,
+    borderRadius: 999,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4
   },
-  fabText: {
-    color: '#fff',
-    fontWeight: '700'
-  },
   settlementCard: {
-    backgroundColor: '#fff',
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 10,
+    backgroundColor: colors.card,
+    padding: spacing.m,
+    borderRadius: radius.m,
+    marginBottom: spacing.s,
     borderWidth: 1,
-    borderColor: '#eee'
+    borderColor: colors.border
   },
   settlementLabel: {
     fontSize: 12,
-    color: '#777',
-    marginBottom: 4
+    color: colors.textSecondary,
+    marginBottom: spacing.s / 2
   },
   settlementText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222',
-    marginBottom: 4
+    color: colors.textPrimary,
+    marginBottom: spacing.s / 2
   },
   settlementDate: {
     fontSize: 12,
-    color: '#777'
+    color: colors.textSecondary
+  },
+  mutedText: {
+    color: colors.textSecondary
+  },
+  dangerText: {
+    color: colors.danger
+  },
+  positiveText: {
+    color: colors.positive
   }
 });

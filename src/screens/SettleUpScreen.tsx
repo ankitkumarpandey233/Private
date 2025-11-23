@@ -1,49 +1,41 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Clipboard from 'expo-clipboard';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { useData } from '../context/DataContext';
-import { calculateGroupDebts, buildBalanceDisplay } from '../utils/balance';
-
-const ACCENT = '#1cc29f';
+import { payWithUpi } from '../utils/upi';
+import { colors, radius, spacing } from '../theme';
 
 export type SettleUpProps = NativeStackScreenProps<RootStackParamList, 'SettleUp'>;
 
 export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) => {
   const { groupId, payerId, receiverId, amount } = route.params;
-  const { groups, users, expenses, settlements, addSettlement, currentUserId } = useData();
+  const { groups, users, addSettlement } = useData();
   const group = groups.find((g) => g.id === groupId);
+  const payer = useMemo(() => users.find((u) => u.id === payerId), [users, payerId]);
+  const receiver = useMemo(() => users.find((u) => u.id === receiverId), [users, receiverId]);
+  const [customAmount, setCustomAmount] = useState(amount?.toFixed(0) ?? '0');
 
-  const debts = useMemo(() => {
-    if (!group) return [];
-    const baseDebts = calculateGroupDebts(group, expenses, settlements);
-    return buildBalanceDisplay(currentUserId, baseDebts, users);
-  }, [group, expenses, settlements, currentUserId, users]);
-
-  const initialBalance =
-    debts.find(
-      (debt) => debt.fromUserId === payerId && debt.toUserId === receiverId && amount === debt.amount
-    ) || debts[0];
-
-  const [selectedBalance, setSelectedBalance] = useState(initialBalance);
-  const [customAmount, setCustomAmount] = useState(
-    initialBalance ? initialBalance.amount.toFixed(0) : amount?.toFixed(0) ?? '0'
-  );
-
-  if (!group || !selectedBalance) {
+  if (!group || !payer || !receiver) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
-          <Text>No balances to settle.</Text>
+          <Text>Missing details for settling up.</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const otherUserId = selectedBalance.direction === 'owe'
-    ? selectedBalance.toUserId
-    : selectedBalance.fromUserId;
-  const otherUser = users.find((u) => u.id === otherUserId);
   const amountNumber = Number(customAmount) || 0;
 
   const handleSettle = () => {
@@ -52,20 +44,35 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
       return;
     }
 
-    const payer = selectedBalance.direction === 'owe' ? selectedBalance.fromUserId : selectedBalance.toUserId;
-    const receiver = selectedBalance.direction === 'owe' ? selectedBalance.toUserId : selectedBalance.fromUserId;
-
-    addSettlement({ groupId: group.id, payerId: payer, receiverId: receiver, amount: amountNumber });
+    addSettlement({
+      groupId: group.id,
+      payerId: payer.id,
+      receiverId: receiver.id,
+      amount: amountNumber
+    });
     navigation.goBack();
+  };
+
+  const handlePayWithUpi = async () => {
+    if (!receiver.upiId || amountNumber <= 0) return;
+    await payWithUpi(receiver.upiId, amountNumber, `Settle up for ${group.name}`);
+  };
+
+  const handleCopyUpi = async () => {
+    if (!receiver.upiId) return;
+    await Clipboard.setStringAsync(receiver.upiId);
+    Alert.alert('Copied', 'UPI ID copied to clipboard');
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.heading}>Settle up</Text>
-        <View style={styles.selector}>
-          <Text style={styles.label}>Settling with</Text>
-          <Text style={styles.value}>{otherUser?.name ?? 'User'}</Text>
+        <View style={styles.card}>
+          <Text style={styles.title}>Settle up</Text>
+          <Text style={styles.subtitle}>You are paying {receiver.name}</Text>
+          <Text style={styles.amount}>₹{amountNumber.toFixed(0)}</Text>
+          <Text style={styles.groupLabel}>Group: {group.name}</Text>
+
           <Text style={styles.label}>Amount (₹)</Text>
           <TextInput
             style={styles.input}
@@ -73,38 +80,59 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
             value={customAmount}
             onChangeText={setCustomAmount}
           />
-        </View>
 
-        <Text style={styles.label}>Choose balance</Text>
-        {debts.map((debt) => {
-          const userId = debt.direction === 'owe' ? debt.toUserId : debt.fromUserId;
-          const user = users.find((u) => u.id === userId);
-          const isSelected = debt === selectedBalance;
-          return (
-            <Pressable
-              key={`${debt.fromUserId}-${debt.toUserId}`}
-              style={[styles.balanceRow, isSelected && styles.balanceRowSelected]}
-              onPress={() => {
-                setSelectedBalance(debt);
-                setCustomAmount(debt.amount.toFixed(0));
-              }}
-            >
-              <Text>
-                {debt.direction === 'owe'
-                  ? `You owe ${user?.name ?? 'User'} ₹${debt.amount.toFixed(0)}`
-                  : `${user?.name ?? 'User'} owes you ₹${debt.amount.toFixed(0)}`}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <View style={styles.footer}>
-        <Pressable style={styles.primaryButton} onPress={handleSettle}>
-          <Text style={styles.primaryButtonText}>Save settlement</Text>
-        </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.secondaryButtonText}>Cancel</Text>
-        </Pressable>
+          {receiver.upiId ? (
+            <View style={styles.upiSection}>
+              <Text style={styles.upiLabel}>UPI</Text>
+              <View style={styles.upiChip}>
+                <Text style={styles.upiValue}>{receiver.upiId}</Text>
+              </View>
+              <Pressable
+                style={[styles.primaryButton, amountNumber <= 0 && styles.disabledButton]}
+                onPress={handlePayWithUpi}
+                accessibilityRole="button"
+                disabled={amountNumber <= 0}
+              >
+                <Text style={styles.primaryButtonText}>Pay with UPI</Text>
+              </Pressable>
+              <Pressable
+                style={styles.textButton}
+                onPress={handleCopyUpi}
+                accessibilityRole="button"
+              >
+                <Text style={styles.textButtonText}>Copy UPI ID</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.upiSection}>
+              <Text style={styles.upiLabel}>UPI</Text>
+              <Text style={styles.muted}>This user has not added a UPI ID yet.</Text>
+            </View>
+          )}
+
+          {receiver.upiQrImageUri ? (
+            <View style={styles.qrSection}>
+              <Text style={styles.qrLabel}>Or scan this QR</Text>
+              <Image source={{ uri: receiver.upiQrImageUri }} style={styles.qrPreview} />
+              <Text style={styles.qrCaption}>Or scan this QR in your UPI app.</Text>
+            </View>
+          ) : null}
+
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={handleSettle}
+            accessibilityRole="button"
+          >
+            <Text style={styles.secondaryButtonText}>Mark as settled</Text>
+          </Pressable>
+          <Pressable
+            style={styles.textButton}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+          >
+            <Text style={styles.textButtonText}>Cancel</Text>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -113,81 +141,137 @@ export const SettleUpScreen: React.FC<SettleUpProps> = ({ route, navigation }) =
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f5f5f5'
+    backgroundColor: colors.background
   },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16
+    padding: spacing.l,
+    justifyContent: 'center'
   },
-  heading: {
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.l,
+    padding: spacing.l,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  title: {
     fontSize: 22,
     fontWeight: '700',
-    marginBottom: 16
+    color: colors.textPrimary
   },
-  selector: {
-    backgroundColor: '#fff',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#eee'
+  subtitle: {
+    color: colors.textSecondary,
+    marginTop: spacing.s
+  },
+  amount: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginVertical: spacing.l
+  },
+  groupLabel: {
+    color: colors.textSecondary,
+    marginBottom: spacing.m,
+    textAlign: 'center'
   },
   label: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 6,
-    marginBottom: 4
-  },
-  value: {
-    fontSize: 16,
-    fontWeight: '600'
+    color: colors.textSecondary,
+    marginBottom: spacing.s
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16
+    borderColor: colors.border,
+    borderRadius: radius.m,
+    padding: spacing.m,
+    fontSize: 16,
+    marginBottom: spacing.l,
+    backgroundColor: colors.card
   },
-  balanceRow: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 10,
+  upiSection: {
+    marginBottom: spacing.l
+  },
+  upiLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: spacing.s
+  },
+  upiChip: {
     borderWidth: 1,
-    borderColor: '#eee',
-    marginBottom: 8
+    borderColor: colors.border,
+    borderRadius: radius.m,
+    paddingVertical: spacing.s,
+    paddingHorizontal: spacing.m,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.m
   },
-  balanceRowSelected: {
-    borderColor: ACCENT,
-    backgroundColor: 'rgba(28, 194, 159, 0.08)'
+  upiValue: {
+    color: colors.textPrimary,
+    fontWeight: '700'
   },
-  footer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderColor: '#eee'
+  qrSection: {
+    alignItems: 'center',
+    marginBottom: spacing.l
+  },
+  qrLabel: {
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: spacing.s
+  },
+  qrPreview: {
+    width: 220,
+    height: 220,
+    borderRadius: radius.m,
+    marginBottom: spacing.s,
+    backgroundColor: colors.background
+  },
+  qrCaption: {
+    color: colors.textSecondary,
+    fontSize: 12
   },
   primaryButton: {
-    backgroundColor: ACCENT,
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: colors.accent,
+    paddingVertical: spacing.m,
+    borderRadius: radius.m,
     alignItems: 'center',
-    marginBottom: 10
+    marginBottom: spacing.s
   },
   primaryButtonText: {
-    color: '#fff',
+    color: colors.card,
     fontWeight: '700'
   },
   secondaryButton: {
-    borderColor: '#ccc',
     borderWidth: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center'
+    borderColor: colors.border,
+    paddingVertical: spacing.m,
+    borderRadius: radius.m,
+    alignItems: 'center',
+    marginBottom: spacing.s
   },
   secondaryButtonText: {
-    color: '#444',
+    color: colors.textPrimary,
     fontWeight: '700'
+  },
+  textButton: {
+    paddingVertical: spacing.s,
+    alignItems: 'center'
+  },
+  textButtonText: {
+    color: colors.accent,
+    fontWeight: '700'
+  },
+  disabledButton: {
+    opacity: 0.6
+  },
+  muted: {
+    color: colors.textSecondary
   }
 });

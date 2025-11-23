@@ -6,11 +6,14 @@ import { nanoid } from 'nanoid/non-secure';
 
 export type DataContextValue = {
   currentUserId: string;
+  currentUser?: User;
   users: User[];
   groups: Group[];
   expenses: Expense[];
   settlements: Settlement[];
   updateUser: (userId: string, updates: Partial<User>) => void;
+  updateCurrentUserUpi: (upiId: string) => void;
+  updateCurrentUserUpiQrImage: (upiQrImageUri: string) => void;
   addSettlement: (settlement: Omit<Settlement, 'id' | 'createdAt'>) => void;
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
   updateExpense: (expenseId: string, updates: Partial<Expense>) => void;
@@ -26,6 +29,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [groups] = useState<Group[]>(seedGroups);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const currentUserId = 'u1';
+
+  const currentUser = useMemo(
+    () => users.find((u) => u.id === currentUserId),
+    [users, currentUserId]
+  );
 
   const updateUser = (userId: string, updates: Partial<User>) => {
     setUsers((prev) => prev.map((user) => (user.id === userId ? { ...user, ...updates } : user)));
@@ -69,21 +77,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return calculateGroupDebts(group, expenses, settlements);
   };
 
+  const updateCurrentUserUpi = (upiId: string) => {
+    updateUser(currentUserId, { upiId });
+  };
+
+  const updateCurrentUserUpiQrImage = (upiQrImageUri: string) => {
+    updateUser(currentUserId, { upiQrImageUri });
+  };
+
   const value = useMemo(
     () => ({
       currentUserId,
+      currentUser,
       users,
       expenses,
       groups,
       settlements,
       updateUser,
+      updateCurrentUserUpi,
+      updateCurrentUserUpiQrImage,
       addSettlement,
       addExpense,
       updateExpense,
       deleteExpense,
       getGroupDebts
     }),
-    [currentUserId, users, expenses, groups, settlements]
+    [currentUserId, currentUser, users, expenses, groups, settlements]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

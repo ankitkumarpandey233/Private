@@ -1,13 +1,13 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { colors, radius, spacing } from '../theme';
 
 interface GroupCardProps {
   name: string;
   summary: string;
   onPress: () => void;
 }
-
-const ACCENT = '#1cc29f';
 
 export const GroupCard: React.FC<GroupCardProps> = ({ name, summary, onPress }) => {
   const lowerSummary = summary.toLowerCase();
@@ -23,23 +23,28 @@ export const GroupCard: React.FC<GroupCardProps> = ({ name, summary, onPress }) 
     >
       <View>
         <Text style={styles.name}>{name}</Text>
-        <Text style={[styles.summary, isOwe ? styles.oweText : isOwed ? styles.owedText : undefined]}>
+        <Text
+          style={[
+            styles.summary,
+            isOwe ? styles.oweText : isOwed ? styles.owedText : undefined
+          ]}
+        >
           {summary || 'All settled'}
         </Text>
       </View>
-      <View style={styles.chevron}>
-        <Text style={{ color: '#aaa', fontSize: 18 }}>{'›'}</Text>
-      </View>
+
+      <Feather name="chevron-right" size={20} color={colors.textSecondary} />
     </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: colors.card,
+    padding: spacing.m,
+    borderRadius: radius.m,
+    marginHorizontal: spacing.m,
+    marginVertical: spacing.s,
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
@@ -56,19 +61,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 6,
-    color: '#222'
+    color: colors.textPrimary
   },
   summary: {
-    color: '#555',
+    color: colors.textSecondary,
     fontSize: 14
   },
   oweText: {
-    color: '#d9534f'
+    color: colors.danger
   },
   owedText: {
-    color: ACCENT
-  },
-  chevron: {
-    marginLeft: 8
+    color: colors.positive
   }
 });
+

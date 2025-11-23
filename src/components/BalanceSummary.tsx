@@ -1,18 +1,17 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { BalanceDisplay } from '../utils/balance';
+import { colors, radius, spacing } from '../theme';
 
 interface BalanceSummaryProps {
   summary: string;
   balances: BalanceDisplay[];
 }
 
-const ACCENT = '#1cc29f';
-
 export const BalanceSummary: React.FC<BalanceSummaryProps> = ({ summary, balances }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.summary}>{summary}</Text>
+      {summary ? <Text style={styles.summary}>{summary}</Text> : null}
       {balances.map((balance) => (
         <View key={`${balance.fromUserId}-${balance.toUserId}`} style={styles.balanceRow}>
           <Text
@@ -33,30 +32,30 @@ export const BalanceSummary: React.FC<BalanceSummaryProps> = ({ summary, balance
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20
+    marginBottom: spacing.l
   },
   summary: {
     fontSize: 20,
     fontWeight: '700',
-    marginBottom: 10,
-    color: '#222'
+    marginBottom: spacing.m,
+    color: colors.textPrimary
   },
   balanceRow: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: colors.card,
+    borderRadius: radius.m,
+    padding: spacing.m,
+    marginBottom: spacing.s,
     borderWidth: 1,
-    borderColor: '#eee'
+    borderColor: colors.border
   },
   balanceText: {
     fontSize: 14,
-    color: '#444'
+    color: colors.textPrimary
   },
   oweText: {
-    color: '#d9534f'
+    color: colors.danger
   },
   owedText: {
-    color: ACCENT
+    color: colors.positive
   }
 });

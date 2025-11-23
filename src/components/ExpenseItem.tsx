@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Expense, User } from '../types';
+import { colors, radius, spacing } from '../theme';
 
 interface ExpenseItemProps {
   expense: Expense;
@@ -12,21 +13,30 @@ interface ExpenseItemProps {
 export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, payer, onEdit, onDelete }) => {
   const handleLongPress = () => {
     if (!onEdit && !onDelete) return;
-    Alert.alert('Expense options', undefined, [
-      onEdit ? { text: 'Edit', onPress: onEdit } : undefined,
-      onDelete ? { text: 'Delete', onPress: onDelete, style: 'destructive' } : undefined,
-      { text: 'Cancel', style: 'cancel' }
-    ].filter(Boolean) as { text: string; onPress?: () => void; style?: 'destructive' | 'cancel' }[]);
+
+    Alert.alert(
+      'Expense options',
+      undefined,
+      [
+        onEdit ? { text: 'Edit', onPress: onEdit } : undefined,
+        onDelete ? { text: 'Delete', onPress: onDelete, style: 'destructive' } : undefined,
+        { text: 'Cancel', style: 'cancel' }
+      ].filter(Boolean) as {
+        text: string;
+        onPress?: () => void;
+        style?: 'destructive' | 'cancel';
+      }[]
+    );
   };
+
+  const primaryLine = `${payer?.name ?? 'Someone'} paid ₹${expense.amount.toFixed(0)} – ${
+    expense.description
+  }`;
 
   return (
     <Pressable onLongPress={handleLongPress} delayLongPress={180}>
       <View style={styles.card}>
-        <View style={styles.row}>
-          <Text style={styles.amount}>₹{expense.amount.toFixed(0)}</Text>
-          <Text style={styles.title}>{payer?.name ?? 'Someone'} paid</Text>
-        </View>
-        <Text style={styles.description}>{expense.description}</Text>
+        <Text style={styles.title}>{primaryLine}</Text>
         <Text style={styles.date}>{new Date(expense.createdAt).toLocaleDateString()}</Text>
       </View>
     </Pressable>
@@ -35,34 +45,25 @@ export const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, payer, onEdit
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 10,
+    backgroundColor: colors.card,
+    padding: spacing.m,
+    borderRadius: radius.m,
+    marginBottom: spacing.s,
     borderWidth: 1,
-    borderColor: '#eee'
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6
-  },
-  amount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1cc29f'
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 4,
+    elevation: 1
   },
   title: {
     fontWeight: '600',
-    color: '#222'
-  },
-  description: {
-    color: '#555',
-    marginBottom: 6
+    color: colors.textPrimary,
+    marginBottom: spacing.s / 2
   },
   date: {
-    color: '#777',
+    color: colors.textSecondary,
     fontSize: 12
   }
 });
